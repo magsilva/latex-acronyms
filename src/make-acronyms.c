@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "\nEnabling reconnection if connection accidently broken or timed out");
 	mysql_options(conn, MYSQL_OPT_RECONNECT, "true");
 
-	if (mysql_real_connect(conn, "143.107.183.152", "acronyms-read", "j4yEctYX9GFRzAmu", "acronyms", 0, NULL, 0) == NULL) {
+	if (mysql_real_connect(conn, "ironiacorp.com", "acronyms-read", "j4yEctYX9GFRzAmu", "acronyms", 0, NULL, 0) == NULL) {
 		fprintf(stderr, "\nError %u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}

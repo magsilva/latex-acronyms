@@ -5,3 +5,5 @@ LIBS=`mysql_config --cflags --libs`
 default:
 	$(CC) $(CFLAGS) $(LIBS) make-acronyms.c -o make-acronyms
 
+clean:
+	rm make-acronyms
