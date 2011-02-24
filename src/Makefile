@@ -6,4 +6,4 @@ default:
 	$(CC) $(CFLAGS) $(LIBS) make-acronyms.c -o make-acronyms
 
 clean:
-	rm make-acronyms
+	rm -f make-acronyms acronyms.tex
