@@ -1,7 +1,8 @@
 #include <stdio.h>
-#include <my_global.h>
-#include <mysql.h>
+#include <stdlib.h>
 #include <string.h>
+#include <mysql.h>
+
 
 int main(int argc, char **argv)
 {
