@@ -3,6 +3,8 @@
 #include <string.h>
 #include <mysql.h>
 
+#define DEFAULT_QUERY_SIZE 2048
+
 
 int main(int argc, char **argv)
 {
@@ -15,10 +17,17 @@ int main(int argc, char **argv)
 	char *document_language = "Portuguese";
 	char *allowed_languages[] = {"Portuguese", "English", NULL};
 
+	char *encoding = "utf8";
+
 	char *hostname = "ironiacorp.com";
 	char *database = "acronyms";
 	char *username = "acronyms-read";
 	char *password = "j4yEctYX9GFRzAmu";
+
+	char query[DEFAULT_QUERY_SIZE];
+	int query_size = DEFAULT_QUERY_SIZE;
+
+	int fields_priority[] = {2, 7, 4, 13};
 
 	fprintf(stdout, "\nDocument language: %s", document_language);
 
@@ -79,7 +88,7 @@ int main(int argc, char **argv)
 
 
 	fprintf(stdout, "\nReading acronyms...");
-	if (mysql_query(conn, "select acronym, language, expansion from acronyms order by acronym")) {
+	if (mysql_query(conn, "select acronym, language, expansion from acronyms where field_id = 2 or field_id = 4 or field_id = 7 or field_id = 13 order by acronym")) {
 		fprintf(stderr, "\nError %u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
