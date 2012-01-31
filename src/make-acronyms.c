@@ -15,6 +15,11 @@ int main(int argc, char **argv)
 	char *document_language = "Portuguese";
 	char *allowed_languages[] = {"Portuguese", "English", NULL};
 
+	char *hostname = "ironiacorp.com";
+	char *database = "acronyms";
+	char *username = "acronyms-read";
+	char *password = "j4yEctYX9GFRzAmu";
+
 	fprintf(stdout, "\nDocument language: %s", document_language);
 
 	fprintf(stdout, "\nAllowed languages: ");
@@ -31,50 +36,60 @@ int main(int argc, char **argv)
 	fprintf(stdout, "\n");
 
 	fprintf(stdout, "\nInitializing required libraries...");
-	fprintf(stderr, "\nMySQL client version %s\n", mysql_get_client_info());
-	fprintf(stdout, "Ok");
-
-
-	fprintf(stdout, "\nSetting up database connection...");
+	fprintf(stdout, "\nMySQL client version %s\n", mysql_get_client_info());
 	conn = mysql_init(NULL);
 	if (conn == NULL) {
 		fprintf(stderr, "%u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
+	fprintf(stdout, "Ok");
 
-	fprintf(stderr, "\nEnabling compression of data...");
+	fprintf(stdout, "\nSetting character encoding to UTF-8...");
+	mysql_options(conn, MYSQL_SET_CHARSET_NAME, "utf8");
+	fprintf(stdout, "Ok");
+
+	fprintf(stdout, "\nEnabling compression of data...");
 	mysql_options(conn, MYSQL_OPT_COMPRESS, NULL);
+	fprintf(stdout, "Ok");
 
-	fprintf(stderr, "\nSetting timeouts...");
+	fprintf(stdout, "\nSetting timeouts...");
 	mysql_options(conn, MYSQL_OPT_CONNECT_TIMEOUT, "240");
 	mysql_options(conn, MYSQL_OPT_READ_TIMEOUT, "40");
 	mysql_options(conn, MYSQL_OPT_WRITE_TIMEOUT, "40");
+	fprintf(stdout, "Ok");
 
-	fprintf(stderr, "\nEnabling reconnection if connection accidently broken or timed out");
+	fprintf(stdout, "\nEnabling reconnection if connection accidently broken or timed out");
 	mysql_options(conn, MYSQL_OPT_RECONNECT, "true");
+	fprintf(stdout, "Ok");
 
-	if (mysql_real_connect(conn, "ironiacorp.com", "acronyms-read", "j4yEctYX9GFRzAmu", "acronyms", 0, NULL, 0) == NULL) {
+	fprintf(stdout, "\nConnecting to database %s at %s", database, hostname);
+	if (mysql_real_connect(conn, hostname, username, password, database, 0, NULL, 0) == NULL) {
 		fprintf(stderr, "\nError %u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
 
 	fprintf(stdout, "Ok");
 
+	fprintf(stdout, "\nSetting MySQL to use UTF-8...");
+	if (mysql_query(conn, "set names utf8") != 0 || mysql_query(conn, "set character set utf8") != 0) {
+		fprintf(stderr, "\nError setting charset to UTF-8 (%u): %s\n", mysql_errno(conn), mysql_error(conn));
+		exit(1);
+	}
+	fprintf(stdout, "Ok");
+
 
 	fprintf(stdout, "\nReading acronyms...");
 	if (mysql_query(conn, "select acronym, language, expansion from acronyms order by acronym")) {
-		printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
+		fprintf(stderr, "\nError %u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
-
-	fprintf(stderr, "\nReading rowsets...");
 	result = mysql_store_result(conn);
 	fprintf(stdout, "Ok");
 
 	fprintf(stdout, "\nCreating acronyms file...");
 	output = fopen("acronyms.tex", "w");
 	if (output == NULL) {
-		fprintf(stderr, "Error creating the acronyms file");
+		fprintf(stderr, "\nError creating the acronyms file");
 		exit(1);
 	}
 	fprintf(stdout, "Ok");
