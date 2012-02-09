@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 
 
 	fprintf(stdout, "\nReading acronyms...");
-	if (mysql_query(conn, "select acronym, language, expansion from acronyms where field_id = 2 or field_id = 4 or field_id = 7 or field_id = 13 or field_id = 17 order by acronym")) {
+	if (mysql_query(conn, "select acronym, language, expansion from acronyms where field_id = 2 or field_id = 4 or field_id = 7 or field_id = 10 or field_id = 13 or field_id = 17 order by acronym")) {
 		fprintf(stderr, "\nError %u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
