@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 	char query[DEFAULT_QUERY_SIZE];
 	int query_size = DEFAULT_QUERY_SIZE;
 
-	int fields_priority[] = {2, 7, 4, 13};
+	int fields_priority[] = {2, 7, 4, 13, 17};
 
 	fprintf(stdout, "\nDocument language: %s", document_language);
 
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 
 
 	fprintf(stdout, "\nReading acronyms...");
-	if (mysql_query(conn, "select acronym, language, expansion from acronyms where field_id = 2 or field_id = 4 or field_id = 7 or field_id = 13 order by acronym")) {
+	if (mysql_query(conn, "select acronym, language, expansion from acronyms where field_id = 2 or field_id = 4 or field_id = 7 or field_id = 13 or field_id = 17 order by acronym")) {
 		fprintf(stderr, "\nError %u: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
