@@ -1,9 +1,9 @@
 CC=gcc
-CFLAGS=-std=c99 -Wall -O2
-LIBS=`mysql_config --cflags --libs`
+CFLAGS=-std=c99 -Wall -O2 `mysql_config --cflags`
+LIBS=`mysql_config --libs`
 
 default:
-	$(CC) $(CFLAGS) $(LIBS) make-acronyms.c -o make-acronyms
+	$(CC) $(CFLAGS)  make-acronyms.c -o make-acronyms $(LIBS)
 
 clean:
 	rm -f make-acronyms acronyms.tex
