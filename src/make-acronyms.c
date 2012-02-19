@@ -1,35 +1,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <mysql.h>
 
-#define DEFAULT_QUERY_SIZE 2048
+typedef struct {
+	char name[32];
+	int  type;
+	char language[30];
+	char expansion[255];
+} Acronym; 
 
 
+// http://bugs.mysql.com/bug.php?id=5254
 int main(int argc, char **argv)
 {
-	FILE *output;
-
 	MYSQL *conn;
-	MYSQL_RES *result;
-	MYSQL_ROW row;
-
-	char *document_language = "Portuguese";
-	char *allowed_languages[] = {"Portuguese", "English", NULL};
-
-	char *encoding = "utf8";
-
+	MYSQL_STMT *stmt;
+	MYSQL_BIND result[4];
+	
 	char *hostname = "ironiacorp.com";
 	char *database = "acronyms";
 	char *username = "acronyms-read";
 	char *password = "j4yEctYX9GFRzAmu";
+	char *sql = "select acronym, language, field_id, expansion from acronyms order by acronym, field_id";
 
-	char query[DEFAULT_QUERY_SIZE];
-	int query_size = DEFAULT_QUERY_SIZE;
+	Acronym currAcro;
+	Acronym prevAcro;
 
-	int fields_priority[] = {2, 7, 4, 13, 17};
+	FILE *output;
 
-	fprintf(stdout, "\nDocument language: %s", document_language);
+	char *output_filename = "acronyms.tex";
+	char *document_language = "Portuguese";
+	char *allowed_languages[] = {"Portuguese", "English", NULL};
+	int fields_priority[] = {2, 7, 4, 6, 8, 10, 13, 16, 17};
 
 	fprintf(stdout, "\nAllowed languages: ");
 	for (int i = 0; i < (sizeof allowed_languages / sizeof (char *)); i++) {
@@ -88,15 +92,54 @@ int main(int argc, char **argv)
 
 
 	fprintf(stdout, "\nReading acronyms...");
-	if (mysql_query(conn, "select acronym, language, expansion from acronyms where field_id = 2 or field_id = 4 or field_id = 5 or field_id = 6 or field_id = 7 or field_id = 8 or field_id = 10 or field_id = 13 or field_id = 16 or field_id = 17 order by acronym")) {
-		fprintf(stderr, "\nError %u: %s\n", mysql_errno(conn), mysql_error(conn));
+	stmt = mysql_stmt_init(conn);
+	if (stmt == NULL) {
+		fprintf(stderr, "\nError %u when creating statement: %s\n", mysql_errno(conn), mysql_error(conn));
 		exit(1);
 	}
-	result = mysql_store_result(conn);
+
+	if (mysql_stmt_prepare(stmt, sql, strlen(sql))) {
+		fprintf(stderr, "\nError %u when preparing statement: %s\n", mysql_errno(conn), mysql_error(conn));
+		exit(1);
+	}
+
+	memset(result, 0, sizeof(result));
+	memset(&currAcro, 0, sizeof(currAcro));
+	memset(&prevAcro, 0, sizeof(prevAcro));
+	result[0].buffer_type = MYSQL_TYPE_STRING; // acronym's name
+	result[0].buffer = (void *) &currAcro.name;
+	result[1].buffer_type = MYSQL_TYPE_STRING; // language
+	result[1].buffer = (void *) &currAcro.language;
+	result[2].buffer_type = MYSQL_TYPE_LONG;   // type
+	result[2].buffer = (void *) &currAcro.type;
+	result[3].buffer_type = MYSQL_TYPE_STRING; // expansion
+	result[3].buffer = (void *) &currAcro.expansion;
+
+	/*
+	if (mysql_stmt_bind_param(stmt, param) != 0) {
+		fprintf(stderr, "\nError %u when binding parameters to statement: %s\n", mysql_errno(conn), mysql_error(conn));
+		exit(1);
+	}
+	*/
+
+	if (mysql_stmt_bind_result(stmt, result) != 0) {
+		fprintf(stderr, "\nError %u when binding result buffer to statement: %s\n", mysql_errno(conn), mysql_error(conn));
+		exit(1);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) {
+		fprintf(stderr, "\nError %u when executing statement: %s\n", mysql_errno(conn), mysql_error(conn));
+		exit(1);
+	}
+
+	if (mysql_stmt_store_result(stmt) != 0) {
+		fprintf(stderr, "\nError %u when retrieving results of statement: %s\n", mysql_errno(conn), mysql_error(conn));
+		exit(1);
+	}
 	fprintf(stdout, "Ok");
 
 	fprintf(stdout, "\nCreating acronyms file...");
-	output = fopen("acronyms.tex", "w");
+	output = fopen(output_filename, "w");
 	if (output == NULL) {
 		fprintf(stderr, "\nError creating the acronyms file");
 		exit(1);
@@ -105,26 +148,21 @@ int main(int argc, char **argv)
 
 	fprintf(stdout, "\nWriting acronyms into file");
 	fprintf(output, "\\begin{acronym}[ABCDEFGHIJK]");
-	while ((row = mysql_fetch_row(result))) {
+	while (mysql_stmt_fetch(stmt) == 0) {
 		int found = 0;
+		fprintf(stdout, acro.name);
 		for (int i = 0; found == 0 && i < (sizeof allowed_languages / sizeof (char *)); i++) {
-			if (row[1] == NULL) {
-				if (allowed_languages[i] == NULL) {
-					fprintf(output, "\n\t\\acro{%s}{%s}", row[0], row[2]);
-					found = 1;		
-				}
-			} else {
-				if (allowed_languages[i] == NULL || strcmp(row[1], allowed_languages[i]) == 0) {
-					if (strcmp(row[1], document_language) == 0) {
-						fprintf(output, "\n\t\\acro{%s}{%s}", row[0], row[2]);
+			if (strcasecmp(currAcro.language, allowed_languages[i]) == 0) {
+				if (strcasecmp(currAcro.language, document_language) == 0) {
+					if (strcmp(currAcro.name, prevAcro.name) == 0) {
+						fprintf(output, "\n\t\\acro{%s}{%s}", currAcro.name, currAcro.expansion);
 					} else {
-						fprintf(output, "\n\t\\acro{%s}{\\foreign{%s}}", row[0], row[2]);
+						fprintf(output, "\n\t\\acro{%s}{\\foreign{%s}}", currAcro.name, currAcro.expansion);
 					}
 					found = 1;
 				}
 			}
 		}
-
 		if (found) {
 			fprintf(stdout, ".");
 		} else {
@@ -137,7 +175,7 @@ int main(int argc, char **argv)
 	
 
 	fprintf(stdout, "\nReleasing allocated resources...");
-	mysql_free_result(result);
+	mysql_stmt_free_result(stmt);
 	mysql_close(conn);
 	fprintf(stdout, "Ok");
 
